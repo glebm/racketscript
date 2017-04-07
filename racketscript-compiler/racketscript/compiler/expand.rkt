@@ -295,22 +295,66 @@
        (pretty-print (syntax->datum v))
        (error 'expand)]))
 
+;; Syntax:top-level-forms -> (Hash Natural (Listof Syntax))
+;; Takes a fully expanded list of top level syntax objects,
+;; and filters + groups them by phase.
+(define (group-forms/phase stx-forms)
+  ;; (HashMap PhaseNumber (Listof Syntax)
+  (define result (make-hash))
+
+  (define (group-forms/phase/aux stx-forms)
+    (filter
+     syntax?
+     (for/list ([form (syntax->list stx-forms)])
+       (syntax-parse form
+         #:literal-sets ((kernel-literals))
+         [(begin-for-syntax b ...)
+          (parameterize ([current-phase (add1 (current-phase))])
+            (hash-update! result
+                          (current-phase)
+                          (λ (val)
+                            (append val
+                                    (group-forms/phase/aux
+                                     #'(b ...))))
+                          '()))
+          ;; Do not include content from begin-for-syntax
+          ;; in current phase. We already have appended it
+          ;; to its appropriate phase.
+          #f]
+         [(begin b ...)
+          ;; Recursively group forms. In end, we get list
+          ;; of forms inside `begin` which belong to current
+          ;; phase. Rest are as mentioned earlier as updated
+          ;; inside result.
+          #`(begin #,@(group-forms/phase/aux  #'(b ...)))]
+         [_ ;;TODO: Submodules
+          ;; Rest is returned as is. We don't have to look inside
+          ;; these forms as `begin-for-syntax` are allowed only
+          ;; at top-level syntax forms.
+          form]))))
+
+  (hash-set! result
+             (current-phase)
+             (group-forms/phase/aux stx-forms))
+  result)
+
 (define (convert mod path)
   (syntax-parse mod
     #:literal-sets ((kernel-literals #:phase (current-phase)))
     [(module name:id lang:expr (#%plain-module-begin forms ...))
-     (parameterize ([current-module path]
-                    [current-module-imports (set)]
-                    [current-directory (path-only path)])
-       (define mod-id (syntax-e #'name))
-       (log-rjs-info "[absyn] ~a" mod-id)
-       (let* ([ast (filter-map to-absyn (syntax->list #'(forms ...)))]
-              [imports (current-module-imports)])
+     (parameterize ([current-phase 0])
+       (define forms/phase (group-forms/phase #'(forms ...)))
+       (parameterize ([current-module path]
+                      [current-directory (path-only path)])
+         (define mod-id (syntax-e #'name))
          (Module mod-id
                  path
-                 (syntax->datum #'lang)
-                 imports
-                 ast)))]
+                 (for/list ([(phase forms) forms/phase])
+                   (parameterize ([current-module-imports (set)])
+                     (log-rjs-info "[absyn] ~a" mod-id)
+                     (let* ([ast (filter-map to-absyn forms)]
+                            [imports (current-module-imports)])
+                       (list phase imports ast)))))))]
     [_
      (error 'convert "bad ~a ~a" mod (syntax->datum mod))]))
 
@@ -599,6 +643,61 @@
                 (list (PrefixAllDefined 'foo (set))))
   (check-equal? (parse-provide #'(prefix-all-defined-except foo add sub))
                 (list (PrefixAllDefined 'foo (set 'add 'sub))))
+
+  ;; Test cases for programs with begin-for-syntax 
+  (define (check-syntax/phase actual expected msg)
+    (check-equal? (for/hash ([(phase forms) (group-forms/phase actual)])
+                    (values phase (map syntax->datum forms)))
+                  expected
+                  msg))
+
+  (check-syntax/phase #'((define-values (x) 10))
+                      (hash 0 `((define-values (x) 10)))
+                      "result for only one phase")
+
+  (check-syntax/phase #'((define-values (x) 10)
+                         (define-values (y) 10))
+                      (hash 0 `((define-values (x) 10)
+                                (define-values (y) 10)))
+                      "result for only one phase")
+
+  (check-syntax/phase #'((begin (define-values (x) 10) 10))
+                      (hash 0 `((begin (define-values (x) 10) 10)))
+                      "begin expressions should be retained")
+
+  (check-syntax/phase #'((begin-for-syntax 10))
+                      (hash 0 '()
+                            1 '(10))
+                      "expression inside begin-for-syntax phase-1")
+
+  (check-syntax/phase #'((begin-for-syntax
+                           10
+                           (begin-for-syntax 11 (begin-for-syntax 12))
+                           (begin-for-syntax 13 (begin-for-syntax 14))))
+                      (hash 0 '()
+                            1 '(10)
+                            2 '(11 13)
+                            3 '(12 14))
+                      "forms of same phases are grouped together")
+
+  (check-syntax/phase #'((begin-for-syntax
+                          10
+                          (begin-for-syntax
+                            12
+                            (begin
+                              13
+                              (begin-for-syntax
+                                14)
+                              15))
+                          (begin-for-syntax
+                            16
+                            (begin-for-syntax
+                              17))))
+                      (hash 0 '()
+                            1 '(10)
+                            2 '(12 (begin 13 15) 16)
+                            3 '(14 17))
+                      "begin-for-syntax inside begin must be grouped properly")
 
   (test-case "check normal and prefix provides in module"
     (define module-output

@@ -6,9 +6,10 @@
 
 (struct Module  ([id      : Symbol]
                  [path    : Path]
-                 [lang    : (U Symbol String (Listof Symbol))]
-                 [imports : (Setof (U Path Symbol))]
-                 [forms   : (Listof ModuleLevelForm)])
+                 [forms   : (Listof
+                             (List Natural                       ;; Phase
+                                   (Setof ModuleName)            ;; Imports
+                                   (Listof ModuleLevelForm)))])   ;; Forms
   #:transparent)
 
 (define-language Absyn

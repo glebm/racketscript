@@ -55,7 +55,7 @@
 
 (: absyn-module->il (-> Module ILModule))
 (define (absyn-module->il mod)
-  (match-define (Module id path lang imports forms) mod)
+  (match-define (Module id path forms) mod)
   (log-rjs-info "[il] ~a" id)
 
   (: provides (Boxof ILProvide*))
@@ -87,7 +87,7 @@
         (match mod-path
           [(? symbol? _)
            (jsruntime-import-path path
-                                  (jsruntime-module-path mod-path))]
+                                 (jsruntime-module-path mod-path))]
           [_ (module->relative-import (cast mod-path Path))]))
       ;; See expansion of identifier in `expand.rkt` for primitive
       ;; modules
