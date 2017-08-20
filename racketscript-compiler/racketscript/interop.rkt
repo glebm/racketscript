@@ -17,6 +17,7 @@
          $/instanceof
          $/arguments
          $/binop
+         $/this
          =>$
          assoc->object)
 
@@ -94,6 +95,10 @@
 (define-syntax ($/null stx)
   (syntax-parse stx
     [_ #`(#%js-ffi 'null)]))
+
+(define-syntax ($/this stx)
+  (syntax-parse stx
+    [_ #`(#%js-ffi 'this)]))
 
 (define-syntax ($/arguments stx)
   (syntax-parse stx

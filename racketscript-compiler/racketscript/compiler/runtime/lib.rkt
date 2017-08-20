@@ -16,6 +16,7 @@
          instanceof
          *null*
          *undefined*
+         *this*
          define-binop
          and
          or
@@ -93,6 +94,7 @@
 
 (define-syntax *null*       (make-rename-transformer #'$/null))
 (define-syntax *undefined*  (make-rename-transformer #'$/undefined))
+(define-syntax *this*  (make-rename-transformer #'$/this))
 
 (define-syntax define-binop
   (syntax-parser

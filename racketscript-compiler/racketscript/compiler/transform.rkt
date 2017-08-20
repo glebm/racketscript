@@ -220,7 +220,7 @@
 
      (define arguments-array
        (ILApp (name-in-module 'core 'argumentsToArray)
-              (list 'arguments)))
+              (list (ILArguments))))
 
      (define-values (il-formals stms-formals-init)
        (cond
@@ -410,6 +410,8 @@
         (values '() (ILUndefined))]
        [(list (Quote 'arguments))
         (values '() (ILArguments))]
+       [(list (Quote 'this))
+        (values '() (ILThis))]
        [_ (error 'absyn-expr->il "unknown ffi form" args)])]
 
     [(PlainApp lam args)
@@ -623,6 +625,7 @@
                    fixed-lam-names fixed-lams)))
 
   (define *null* (PlainApp (ImportedIdent '#%js-ffi '#%kernel #t) (list (Quote 'null))))
+  (define *arguments* (PlainApp (ImportedIdent '#%js-ffi '#%kernel #t) (list (Quote 'arguments))))
 
   (define-values (var-lam-stms var-lam-val)
     (absyn-expr->il
@@ -641,17 +644,17 @@
                                      (list (Quote 'ref)
                                            (LocalIdent nh)
                                            (Quote 'apply)))
-                           (list *null* (LocalIdent 'arguments)))
+                           (list *null* *arguments*))
                  (loop lt nt))]))
      #f))
 
   ;; TODO: We can avoid using apply here.
   (define dispatch-stms
-    (list (ILVarDec fixed-lam-name (ILIndex fixed-lam-map (ILRef 'arguments 'length)))
+    (list (ILVarDec fixed-lam-name (ILIndex fixed-lam-map (ILRef (ILArguments) 'length)))
           (ILIf (ILBinaryOp '!== (list fixed-lam-name (ILUndefined)))
                 (list (ILReturn
                        (ILApp (ILRef fixed-lam-name 'apply)
-                              (list (ILNull) 'arguments))))
+                              (list (ILNull) (ILArguments)))))
                 (append1 var-lam-stms
                          (ILReturn var-lam-val)))))
 
@@ -853,7 +856,7 @@
                       (name-in-module 'core 'Pair.listFromArray)
                       (list
                        (ILApp (name-in-module 'core 'argumentsToArray)
-                              '(arguments)))))
+                              (list (ILArguments))))))
                     (ILReturn 'x))))))
   ;; If expressions
 
@@ -962,12 +965,12 @@
         'fixed-lam3
         (ILIndex
          (ILObject '((|2| . cl1) (|3| . cl2)))
-         (ILRef 'arguments 'length)))
+         (ILRef (ILArguments) 'length)))
        (ILIf
         (ILBinaryOp '!== (list 'fixed-lam3 (ILUndefined)))
         (list
          (ILReturn
-          (ILApp (ILRef 'fixed-lam3 'apply) (list (ILNull) 'arguments))))
+          (ILApp (ILRef 'fixed-lam3 'apply) (list (ILNull) (ILArguments)))))
         (list
          (ILReturn
           (ILApp
