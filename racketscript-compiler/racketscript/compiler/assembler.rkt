@@ -156,7 +156,7 @@
     [(ILIf expr t-branch f-branch)
      (emit "if (")
      (assemble-expr expr out)
-     (emit ") {")
+     (emit " !== false) {")
      (assemble-statement* t-branch out)
      (emit "} else {")
      (assemble-statement* f-branch out)
@@ -171,7 +171,7 @@
          [(cons (ILIfClause (? ILExpr? pred) body) ctl)
           (emit "if (")
           (assemble-expr pred out)
-          (emit ") {")
+          (emit " !== false) {")
           (assemble-statement* body out)
           (emit "}")
           (when (cons? ctl)
@@ -539,17 +539,17 @@
              "var sum = function(a, b) {return a+b;};")
   (check-stm (ILAssign 'sum (ILBinaryOp '+ '(a b))) "sum = a+b;")
   (check-stm (ILIf (ILBinaryOp '< '(a b)) (list (ILValue #t)) (list (ILValue #f)))
-             "if (a<b) {true;} else {false;}")
+             "if (a<b !== false) {true;} else {false;}")
 
   (check-stm (ILIf* (list
                      (ILIfClause (ILValue 1) (list 't-branch-1))
                      (ILIfClause (ILValue 2) (list 't-branch-2))
                      (ILIfClause (ILValue 3) (list 't-branch-3))
                      (ILIfClause #f (list 'done))))
-             "if (1) {t_branch_1;} else if (2) {t_branch_2;} else if (3) {t_branch_3;} else {done;}")
+             "if (1 !== false) {t_branch_1;} else if (2 !== false) {t_branch_2;} else if (3 !== false) {t_branch_3;} else {done;}")
   (check-stm (ILIf* (list
                      (ILIfClause (ILValue 1) (list 't-branch-1))))
-             "if (1) {t_branch_1;}")
+             "if (1 !== false) {t_branch_1;}")
 
   ;; Exceptions
 

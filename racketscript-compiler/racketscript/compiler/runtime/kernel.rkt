@@ -592,6 +592,9 @@
 
 (define+provide string-append string)
 
+(define+provide (string-ref s i)
+  (#js.s.charAt i))
+
 (define+provide (string=? sa sb)
   (binop === sa sb))
 
@@ -612,6 +615,10 @@
 
 (define+provide format #js.Kernel.format)
 (define+provide symbol? #js.Core.Symbol.check)
+
+(define+provide (make-string n c)
+  (#js.c.repeat n))
+(define+provide list->string #js.Core.Pair.listToString)
 
 (define-checked+provide (symbol->string [v symbol?])
   (#js.v.toString))
@@ -639,9 +646,7 @@
 (define+provide (string-upcase v)
   (#js.v.toUpperCase v))
 
-;; end is optional
-(define+provide (substring str start end)
-  (define end (or end #f))
+(define+provide (substring str start [end #f])
   (cond
     [(not (typeof str "string"))
      (throw (#js.Core.racketContractError "expected a string"))]
@@ -656,6 +661,27 @@
 
 (define+provide (string-split str sep)
   (#js.Core.Pair.listFromArray (#js.str.split sep)))
+
+(define+provide (char? c)
+  (typeof #js.c "string"))
+
+(define+provide (char<? a b)
+  (binop < (#js.a.codePointAt 0) (#js.b.codePointAt 0)))
+
+(define+provide (char<=? a b)
+  (binop <= (#js.a.codePointAt 0) (#js.b.codePointAt 0)))
+
+(define+provide (char>? a b)
+  (binop > (#js.a.codePointAt 0) (#js.b.codePointAt 0)))
+
+(define+provide (char>=? a b)
+  (binop >= (#js.a.codePointAt 0) (#js.b.codePointAt 0)))
+
+(define+provide (char=? a b)
+  (binop === a b))
+
+(define+provide (char->integer c)
+  (#js.c.codePointAt 0))
 
 ;; --------------------------------------------------------------------------
 ;; Box
@@ -715,13 +741,17 @@
 (define+provide (output-port? p)
   (#js.Core.Ports.checkOutputPort p))
 
+(define+provide open-output-string #js.Core.Ports.openOutputString)
+(define+provide get-output-string #js.Core.Ports.getOutputString)
+
 ;; --------------------------------------------------------------------------
 ;; Printing
 
-(define+provide (display v) (#js.Kernel.display v))
+(define+provide (display v [out (current-output-port)]) (#js.Kernel.display v out))
+(define+provide (print v [out (current-output-port)]) (#js.Kernel.print v out))
 
-(define+provide (newline)
-  (display "\n"))
+(define+provide (newline [out (current-output-port)])
+  (display "\n" out))
 
 ;; --------------------------------------------------------------------------
 ;; Errors

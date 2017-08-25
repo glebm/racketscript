@@ -57,6 +57,33 @@ export function checkOutputPort(v) {
     return check(v) && v.isOutputPort();
 }
 
+class OutputStringPort {
+	constructor() {
+		this.__buffer = [];
+		this.__cachedString = null;
+	}
+
+	write(chars) {
+		this.__buffer.push(chars);
+		this.__cachedString = null;
+	}
+
+	getOutputString() {
+		if (this.__buffer.length > 1) {
+			this.__buffer = [this.__buffer.join('')];
+		}
+		return this.__buffer[0];
+	}
+}
+
+export function openOutputString() {
+	return new OutputStringPort();
+}
+
+export function getOutputString(outputStringPort) {
+	return outputStringPort.getOutputString();
+}
+
 export let standardOutputPort = makeOutputPort((state, chars) => {
     let nl_index = chars.lastIndexOf("\n");
     if (nl_index >= 0) {
