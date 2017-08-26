@@ -98,10 +98,6 @@ export function listToArray(lst) {
     return r;
 }
 
-export function listToString(lst) {
-	return listToArray(lst).join('');
-}
-
 export function listFromArray(lst) {
     return makeList.apply(null, lst);
 }

@@ -616,9 +616,13 @@
 (define+provide format #js.Kernel.format)
 (define+provide symbol? #js.Core.Symbol.check)
 
-(define+provide (make-string n c)
-  (#js.c.repeat n))
-(define+provide list->string #js.Core.Pair.listToString)
+; TODO: This should return a mutable string
+(define+provide (make-string k [c #\nul])
+  (#js.c.repeat k))
+
+; TODO: This should return a mutable string
+(define+provide (list->string lst)
+  (#js.Kernel.listToString lst))
 
 (define-checked+provide (symbol->string [v symbol?])
   (#js.v.toString))
@@ -661,6 +665,9 @@
 
 (define+provide (string-split str sep)
   (#js.Core.Pair.listFromArray (#js.str.split sep)))
+
+;; --------------------------------------------------------------------------
+;; Characters
 
 (define+provide (char? c)
   (typeof #js.c "string"))
@@ -724,7 +731,10 @@
 ;; Ports + Writers
 
 (define+provide (current-output-port)
-  #js.Core.Ports.standardOutputPort)
+  #js.Core.Ports.currentOutputPort)
+
+(define+provide (current-error-port)
+  #js.Core.Ports.currentErrorPort)
 
 (define+provide (current-print)
   (λ (p)
@@ -735,14 +745,23 @@
       (display "\""))
     (newline)))
 
+(define+provide (port? p)
+  (#js.Core.Ports.isPort p))
+
 (define+provide (input-port? p)
-  (#js.Core.Ports.checkInputPort p))
+  (#js.Core.Ports.isInputPort p))
 
 (define+provide (output-port? p)
-  (#js.Core.Ports.checkOutputPort p))
+  (#js.Core.Ports.isOutputPort p))
 
-(define+provide open-output-string #js.Core.Ports.openOutputString)
-(define+provide get-output-string #js.Core.Ports.getOutputString)
+(define+provide (string-port? p)
+  (#js.Core.Ports.isStringPort p))
+
+(define+provide (open-output-string)
+  (#js.Core.Ports.openOutputString))
+
+(define+provide (get-output-string p)
+  (#js.Core.Ports.getOutputString p))
 
 ;; --------------------------------------------------------------------------
 ;; Printing

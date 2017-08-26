@@ -1,5 +1,8 @@
 import * as Core from "./core.js";
 
+/* --------------------------------------------------------------------------*/
+// String construction and manipulation
+
 export function format(pattern, ...args) {
     //TODO: Only ~a and ~x are supported
     var matched = 0;
@@ -14,6 +17,10 @@ export function format(pattern, ...args) {
     });
 }
 
+
+export function listToString(lst) {
+	return Core.Pair.listToArray(lst).join('');
+}
 
 /* --------------------------------------------------------------------------*/
 // Printing to Console
