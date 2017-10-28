@@ -718,6 +718,16 @@
 (define-checked+provide (char-utf-8-length [c char?])
   (#js.Core.Char.charUtf8Length c))
 
+(define-checked+provide (char-upcase [c char?])
+  (let ([s (#js.c.toString)]
+        [upper (#js.s.toUpperCase)])
+    (if (binop === #js.upper.length #js.s.length) upper s)))
+
+(define-checked+provide (char-downcase [c char?])
+  (let ([s (#js.c.toString)]
+        [lower (#js.s.toLowerCase)])
+    (if (binop === #js.lower.length #js.s.length) lower s)))
+
 ; TODO: Add varargs support for the comparison methods below.
 
 (define-checked+provide (char<? [a char?] [b char?])
